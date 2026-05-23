@@ -5,44 +5,44 @@
 #define TAM_FILA 5
 #define TAM_PILHA 3
 
-/*   Estrutura da Peça*/
+/* Estrutura da Peça  */
 
 typedef struct {
-    char nome; // Tipo da peça: I, O, T, L
-    int id;    // Identificador único
+    char nome; // I, O, T, L
+    int id;    // identificador único
 } Peca;
 
-/*   Estrutura da Fila Circular */
+/* Fila Circular  */
 
 typedef struct {
     Peca dados[TAM_FILA];
     int inicio;
     int fim;
-    int quantidade;
+    int qtd;
 } Fila;
 
-/* Estrutura da Pilha */
+/* Pilha  */
 
 typedef struct {
     Peca dados[TAM_PILHA];
     int topo;
 } Pilha;
 
-/* Protótipos */
+/* Protótipos   */
 
 void inicializarFila(Fila *f);
 void inicializarPilha(Pilha *p);
 Peca gerarPeca(int id);
 
-int enfileirar(Fila *f, Peca p);
-Peca desenfileirar(Fila *f);
+Peca dequeue(Fila *f);
+void enqueue(Fila *f, Peca p);
 
-int empilhar(Pilha *p, Peca peca);
-Peca desempilhar(Pilha *p);
+void push(Pilha *p, Peca peca);
+Peca pop(Pilha *p);
 
 void exibirEstado(Fila *f, Pilha *p);
 
-/* Função principal  */
+/* Função principal*/
 
 int main() {
     Fila fila;
@@ -55,62 +55,81 @@ int main() {
     inicializarFila(&fila);
     inicializarPilha(&pilha);
 
-    /* Preenche a fila inicial */
+    /* Preenche fila inicial */
+
     for (int i = 0; i < TAM_FILA; i++) {
-        enfileirar(&fila, gerarPeca(contadorId++));
+        enqueue(&fila, gerarPeca(contadorId++));
     }
 
     do {
         exibirEstado(&fila, &pilha);
 
-        printf("\nOpções de Ação:\n");
-        printf("1 - Jogar peça\n");
-        printf("2 - Reservar peça\n");
-        printf("3 - Usar peça reservada\n");
+        printf("\nOpções disponíveis:\n");
+        printf("1 - Jogar peça da frente da fila\n");
+        printf("2 - Enviar peça da fila para a pilha\n");
+        printf("3 - Usar peça da pilha\n");
+        printf("4 - Trocar frente da fila com topo da pilha\n");
+        printf("5 - Trocar os 3 primeiros da fila com os 3 da pilha\n");
         printf("0 - Sair\n");
-        printf("Opção: ");
+        printf("Opção escolhida: ");
         scanf("%d", &opcao);
 
         if (opcao == 1) {
-            /* Jogar peça */
-            desenfileirar(&fila);
-            enfileirar(&fila, gerarPeca(contadorId++));
+            dequeue(&fila);
+            enqueue(&fila, gerarPeca(contadorId++));
 
         } else if (opcao == 2) {
-            /* Reservar peça */
             if (pilha.topo < TAM_PILHA - 1) {
-                Peca p = desenfileirar(&fila);
-                empilhar(&pilha, p);
-                enfileirar(&fila, gerarPeca(contadorId++));
+                push(&pilha, dequeue(&fila));
+                enqueue(&fila, gerarPeca(contadorId++));
             } else {
-                printf("\nPilha de reserva cheia!\n");
+                printf("\nPilha cheia! Operação cancelada.\n");
             }
 
         } else if (opcao == 3) {
-            /* Usar peça reservada */
             if (pilha.topo >= 0) {
-                desempilhar(&pilha);
-                enfileirar(&fila, gerarPeca(contadorId++));
+                pop(&pilha);
+                enqueue(&fila, gerarPeca(contadorId++));
             } else {
-                printf("\nPilha de reserva vazia!\n");
+                printf("\nPilha vazia!\n");
             }
 
-        } else if (opcao != 0) {
-            printf("\nOpção inválida!\n");
+        } else if (opcao == 4) {
+            if (pilha.topo >= 0) {
+                Peca temp = fila.dados[fila.inicio];
+                fila.dados[fila.inicio] = pilha.dados[pilha.topo];
+                pilha.dados[pilha.topo] = temp;
+                printf("\nTroca simples realizada.\n");
+            } else {
+                printf("\nPilha vazia! Troca impossível.\n");
+            }
+
+        } else if (opcao == 5) {
+            if (fila.qtd >= 3 && pilha.topo >= 2) {
+                for (int i = 0; i < 3; i++) {
+                    int posFila = (fila.inicio + i) % TAM_FILA;
+                    Peca temp = fila.dados[posFila];
+                    fila.dados[posFila] = pilha.dados[pilha.topo - i];
+                    pilha.dados[pilha.topo - i] = temp;
+                }
+                printf("\nTroca múltipla realizada entre fila e pilha.\n");
+            } else {
+                printf("\nNão há peças suficientes para troca múltipla.\n");
+            }
         }
 
     } while (opcao != 0);
 
-    printf("\nJogo encerrado.\n");
+    printf("\nPrograma encerrado.\n");
     return 0;
 }
 
-/* Implementações   */
+/* Implementações  */
 
 void inicializarFila(Fila *f) {
     f->inicio = 0;
     f->fim = 0;
-    f->quantidade = 0;
+    f->qtd = 0;
 }
 
 void inicializarPilha(Pilha *p) {
@@ -125,44 +144,35 @@ Peca gerarPeca(int id) {
     return p;
 }
 
-int enfileirar(Fila *f, Peca p) {
-    if (f->quantidade == TAM_FILA) {
-        return 0;
-    }
+void enqueue(Fila *f, Peca p) {
     f->dados[f->fim] = p;
     f->fim = (f->fim + 1) % TAM_FILA;
-    f->quantidade++;
-    return 1;
+    f->qtd++;
 }
 
-Peca desenfileirar(Fila *f) {
-    Peca removida = f->dados[f->inicio];
+Peca dequeue(Fila *f) {
+    Peca p = f->dados[f->inicio];
     f->inicio = (f->inicio + 1) % TAM_FILA;
-    f->quantidade--;
-    return removida;
+    f->qtd--;
+    return p;
 }
 
-int empilhar(Pilha *p, Peca peca) {
-    if (p->topo == TAM_PILHA - 1) {
-        return 0;
-    }
+void push(Pilha *p, Peca peca) {
     p->dados[++p->topo] = peca;
-    return 1;
 }
 
-Peca desempilhar(Pilha *p) {
+Peca pop(Pilha *p) {
     return p->dados[p->topo--];
 }
 
 void exibirEstado(Fila *f, Pilha *p) {
-    printf("\n=============================\n");
+    printf("\n==============================\n");
     printf("Estado atual:\n");
 
     printf("Fila de peças: ");
-    int pos = f->inicio;
-    for (int i = 0; i < f->quantidade; i++) {
+    for (int i = 0; i < f->qtd; i++) {
+        int pos = (f->inicio + i) % TAM_FILA;
         printf("[%c %d] ", f->dados[pos].nome, f->dados[pos].id);
-        pos = (pos + 1) % TAM_FILA;
     }
 
     printf("\nPilha de reserva (Topo -> Base): ");
@@ -173,5 +183,5 @@ void exibirEstado(Fila *f, Pilha *p) {
             printf("[%c %d] ", p->dados[i].nome, p->dados[i].id);
         }
     }
-    printf("\n=============================\n");
+    printf("\n==============================\n");
 }
